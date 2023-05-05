@@ -16,11 +16,11 @@ def processData():
     ball = golf_ballistics()
 
     # Extract relevant data from the shot object
-    velocityMPH = shot['BallSpeed']
-    launch_angle_deg = shot['VLA']
-    off_center_angle_deg = shot['HLA']
-    backspin_rpm = shot['BackSpin']
-    sidespin_rpm = shot['SideSpin']
+    velocityMPH = float(shot['BallSpeed'])
+    launch_angle_deg = float(shot['VLA'])
+    off_center_angle_deg = float(shot['HLA'])
+    backspin_rpm = float(shot['BackSpin'])
+    sidespin_rpm = float(shot['SideSpin'])
     windspeed = 0
     windheading_deg = 180
 
