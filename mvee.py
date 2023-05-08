@@ -17,8 +17,10 @@ def mvee(points, tol=0.001):
     Q = np.column_stack((points, np.ones(N))).T
     err = tol+1.0
     u = np.ones(N)/N
+    iteration_count = 0  # Add a counter variable
+
     while err > tol:
-        # assert u.sum() == 1 # invariant
+        iteration_count += 1  # Increment the counter in each iteration
         X = Q * np.diag(u) * Q.T
         M = np.diag(Q.T * la.inv(X) * Q)
         jdx = np.argmax(M)
@@ -29,6 +31,8 @@ def mvee(points, tol=0.001):
         u = new_u
     c = u*points
     A = la.inv(points.T*np.diag(u)*points - c.T*c)/d
+    # Print the total number of iterations after the loop
+    print(f'Total number of iterations: {iteration_count}')
     return np.asarray(A), np.squeeze(np.asarray(c))
 
 

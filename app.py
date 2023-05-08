@@ -15,12 +15,20 @@ app = Flask(__name__)
 flask_env = os.environ.get("FLASK_ENV", "development")
 
 if flask_env == "development":
-    # Allow all origins for local development
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
-else:
-    # Replace 'your-mern-app-domain.com' with your actual MERN app domain
     CORS(app, resources={
-         r"/api/*": {"origins": "https://golfswingvision.com/"}})
+        r"/*": {
+            "origins": "http://localhost:3000",
+            "methods": ["POST"]
+        }
+    })
+else:
+    CORS(app, resources={
+        r"/*": {
+            "origins": "https://golfswingvision.com",
+            "allow_headers": ["Content-Type", "Authorization"],
+            "methods": ["POST"]
+        }
+    })
 
 
 @app.route('/calculate-ball-flight', methods=['POST'])
@@ -45,13 +53,17 @@ def processData():
     velocity = velocityMPH * 0.44704
 
     # Call the initiate_hit method
+    now = datetime.now()
+    print("calling initiate_hit: ", now)
     ball.initiate_hit(velocity, launch_angle_deg, off_center_angle_deg,
                       backspin_rpm, -sidespin_rpm, windspeed, windheading_deg)
 
     # Call the get_landingpos method
     x, y = ball.get_landingpos(velocity=velocity, launch_angle_deg=launch_angle_deg, off_center_angle_deg=off_center_angle_deg,
                                backspin_rpm=backspin_rpm, sidespin_rpm=-sidespin_rpm, windspeed=windspeed, windheading_deg=windheading_deg)
-
+    now = datetime.now()
+    print("back from get_landingpos", now2)
+    print("total time: ", now2 - now)
     # Convert output units back to yards
     x_yards, y_yards = x * 1.09361, y * 1.09361
 
@@ -110,11 +122,9 @@ def calculate_mvee():
 
     # Call the mvee function
     now = datetime.now()
-
     print("calling mvee: ", now)
-    matrix_A, center = mvee(points, tol=1e-4)
+    matrix_A, center = mvee(points, tol=1e-3)
     now2 = datetime.now()
-
     print("back from mvee", now2)
     print("total time: ", now2 - now)
 
