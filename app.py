@@ -7,6 +7,7 @@ from mvee import mvee
 import numpy as np
 from scipy.linalg import eigh
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -102,17 +103,21 @@ def processData():
 def calculate_mvee():
     # Parse the JSON data
     data = request.json
-    print(data)
     points_json = data['points']
 
     # Convert the list of dictionaries to a numpy array
     points = np.array([[point[0], point[1]] for point in points_json])
 
     # Call the mvee function
-    matrix_A, center = mvee(points, tol=1e-4)
+    now = datetime.now()
 
-    print(matrix_A)
-    print("end of matrix A")
+    print("calling mvee: ", now)
+    matrix_A, center = mvee(points, tol=1e-4)
+    now2 = datetime.now()
+
+    print("back from mvee", now2)
+    print("total time: ", now2 - now)
+
     # Calculate the eigenvalues and eigenvectors of matrix A
     eigenvalues, eigenvectors = eigh(matrix_A)
 
