@@ -18,6 +18,7 @@ def mvee(points, tol=0.001):
     err = tol+1.0
     u = np.ones(N)/N
     while err > tol:
+        print(err)
         # assert u.sum() == 1 # invariant
         X = Q * np.diag(u) * Q.T
         M = np.diag(Q.T * la.inv(X) * Q)

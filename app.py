@@ -102,6 +102,7 @@ def processData():
 def calculate_mvee():
     # Parse the JSON data
     data = request.json
+    print(data)
     points_json = data['points']
 
     # Convert the list of dictionaries to a numpy array
