@@ -61,7 +61,7 @@ def processData():
     # Call the get_landingpos method
     x, y = ball.get_landingpos(velocity=velocity, launch_angle_deg=launch_angle_deg, off_center_angle_deg=off_center_angle_deg,
                                backspin_rpm=backspin_rpm, sidespin_rpm=-sidespin_rpm, windspeed=windspeed, windheading_deg=windheading_deg)
-    now = datetime.now()
+    now2 = datetime.now()
     print("back from get_landingpos", now2)
     print("total time: ", now2 - now)
     # Convert output units back to yards
@@ -90,8 +90,8 @@ def processData():
         filtered_df_simres = ball.df_simres
 
     # Convert x, y, and z values from meters to yards
-    filtered_df_simres[['x', 'y', 'z']
-                       ] = filtered_df_simres[['x', 'y', 'z']] * 1.09361
+    filtered_df_simres.loc[:, ['x', 'y', 'z']
+                           ] = filtered_df_simres.loc[:, ['x', 'y', 'z']] * 1.09361
 
     # Drop the 't', 'v_x', 'v_y', and 'v_z' columns
     filtered_df_simres = filtered_df_simres.drop(
