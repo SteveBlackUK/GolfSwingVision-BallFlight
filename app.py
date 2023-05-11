@@ -123,7 +123,7 @@ def calculate_mvee():
     # Call the mvee function
     now = datetime.now()
     print("calling mvee: ", now)
-    matrix_A, center = mvee(points, tol=1e-3)
+    matrix_A, center = mvee(points, tol=1e-4)
     now2 = datetime.now()
     print("back from mvee", now2)
     print("total time: ", now2 - now)
