@@ -12,6 +12,7 @@ from datetime import datetime
 load_dotenv()
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024  # 8 megabytes
 flask_env = os.environ.get("FLASK_ENV", "development")
 
 if flask_env == "development":
