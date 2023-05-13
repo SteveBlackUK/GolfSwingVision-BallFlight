@@ -8,10 +8,16 @@ import numpy as np
 from scipy.linalg import eigh
 from dotenv import load_dotenv
 from datetime import datetime
+from log import logger
+from errors import register_error_handlers
+from errors import MissingInputError
+from errors import InvalidInputError
+from errors import CannotFormEllipseError
 
 load_dotenv()
 
 app = Flask(__name__)
+register_error_handlers(app)
 app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024  # 8 megabytes
 flask_env = os.environ.get("FLASK_ENV", "development")
 
@@ -34,122 +40,167 @@ else:
 
 @app.route('/calculate-ball-flight', methods=['POST'])
 def processData():
-    # Parse the JSON data
-    data = request.json
+    try:
+        # Parse the JSON data
+        data = request.json
 
-    shot = data
+        # Check if required inputs are present
+        required_inputs = ['BallSpeed', 'VLA', 'HLA', 'BackSpin', 'SideSpin']
+        for input in required_inputs:
+            if input not in data:
+                raise MissingInputError(f"Missing required input: {input}")
 
-    ball = golf_ballistics()
+        shot = data
 
-    # Extract relevant data from the shot object
-    velocityMPH = float(shot['BallSpeed'])
-    launch_angle_deg = float(shot['VLA'])
-    off_center_angle_deg = float(shot['HLA'])
-    backspin_rpm = float(shot['BackSpin'])
-    sidespin_rpm = float(shot['SideSpin'])
-    windspeed = 0
-    windheading_deg = 180
+        ball = golf_ballistics()
 
-    # Convert units
-    velocity = velocityMPH * 0.44704
+        # Extract relevant data from the shot object
+        velocityMPH = float(shot['BallSpeed'])
+        launch_angle_deg = float(shot['VLA'])
+        off_center_angle_deg = float(shot['HLA'])
+        backspin_rpm = float(shot['BackSpin'])
+        sidespin_rpm = float(shot['SideSpin'])
+        windspeed = 0
+        windheading_deg = 180
 
-    # Call the initiate_hit method
-    now = datetime.now()
-    print("calling initiate_hit: ", now)
-    ball.initiate_hit(velocity, launch_angle_deg, off_center_angle_deg,
-                      backspin_rpm, -sidespin_rpm, windspeed, windheading_deg)
+        # Convert units
+        velocity = velocityMPH * 0.44704
 
-    # Call the get_landingpos method
-    x, y = ball.get_landingpos(velocity=velocity, launch_angle_deg=launch_angle_deg, off_center_angle_deg=off_center_angle_deg,
-                               backspin_rpm=backspin_rpm, sidespin_rpm=-sidespin_rpm, windspeed=windspeed, windheading_deg=windheading_deg)
-    now2 = datetime.now()
-    print("back from get_landingpos", now2)
-    print("total time: ", now2 - now)
-    # Convert output units back to yards
-    x_yards, y_yards = x * 1.09361, y * 1.09361
+        # Call the initiate_hit method
+        now = datetime.now()
+        ball.initiate_hit(velocity, launch_angle_deg, off_center_angle_deg,
+                          backspin_rpm, -sidespin_rpm, windspeed, windheading_deg)
 
-    # Retrieve the maximum z-value from the simulation results
-    max_z = ball.df_simres['z'].max()
+        # Call the get_landingpos method
+        x, y = ball.get_landingpos(velocity=velocity, launch_angle_deg=launch_angle_deg, off_center_angle_deg=off_center_angle_deg,
+                                   backspin_rpm=backspin_rpm, sidespin_rpm=-sidespin_rpm, windspeed=windspeed, windheading_deg=windheading_deg)
+        now2 = datetime.now()
+        logger.info("total time for ball flight calc: " + str(now2 - now))
+        # Convert output units back to yards
+        x_yards, y_yards = x * 1.09361, y * 1.09361
 
-    # Convert the maximum z-value from meters to yards
-    max_z_yards = max_z * 1.09361
+        # Retrieve the maximum z-value from the simulation results
+        max_z = ball.df_simres['z'].max()
 
-    def get_first_negative_z_index(df):
-        for index, row in df.iterrows():
-            if row['z'] < 0:
-                return index
-        return -1
+        # Convert the maximum z-value from meters to yards
+        max_z_yards = max_z * 1.09361
 
-    # Find the index of the first row where z goes below zero
-    first_negative_z_index = get_first_negative_z_index(ball.df_simres)
+        def get_first_negative_z_index(df):
+            for index, row in df.iterrows():
+                if row['z'] < 0:
+                    return index
+            return -1
 
-    # If there's a row with a negative z-value, include it and set its z value to 0
-    if first_negative_z_index != -1:
-        # ball.df_simres.at[first_negative_z_index, 'z'] = 0
-        filtered_df_simres = ball.df_simres.iloc[:first_negative_z_index + 1]
-    else:
-        filtered_df_simres = ball.df_simres
+        # Find the index of the first row where z goes below zero
+        first_negative_z_index = get_first_negative_z_index(ball.df_simres)
 
-    # Convert x, y, and z values from meters to yards
-    filtered_df_simres.loc[:, ['x', 'y', 'z']
-                           ] = filtered_df_simres.loc[:, ['x', 'y', 'z']] * 1.09361
+        # If there's a row with a negative z-value, include it and set its z value to 0
+        if first_negative_z_index != -1:
+            # ball.df_simres.at[first_negative_z_index, 'z'] = 0
+            filtered_df_simres = ball.df_simres.iloc[:first_negative_z_index + 1]
+        else:
+            filtered_df_simres = ball.df_simres
 
-    # Drop the 't', 'v_x', 'v_y', and 'v_z' columns
-    filtered_df_simres = filtered_df_simres.drop(
-        columns=['t', 'v_x', 'v_y', 'v_z'])
+        # Convert x, y, and z values from meters to yards
+        filtered_df_simres.loc[:, ['x', 'y', 'z']
+                               ] = filtered_df_simres.loc[:, ['x', 'y', 'z']] * 1.09361
 
-    # Convert the dataframe to a JSON object
-    df_simres_json = filtered_df_simres.to_json(orient="records")
+        # Drop the 't', 'v_x', 'v_y', and 'v_z' columns
+        filtered_df_simres = filtered_df_simres.drop(
+            columns=['t', 'v_x', 'v_y', 'v_z'])
 
-    # Format the result as a JSON object
-    result = {
-        "landing_position": {"x": x_yards, "y": y_yards},
-        "peakHeight": max_z_yards,
-        "trajectory_data": df_simres_json
+        # Convert the dataframe to a JSON object
+        df_simres_json = filtered_df_simres.to_json(orient="records")
 
-    }
+        # Format the result as a JSON object
+        result = {
+            "landing_position": {"x": x_yards, "y": y_yards},
+            "peakHeight": max_z_yards,
+            "trajectory_data": df_simres_json
 
+        }
+    except MissingInputError as e:
+        logger.error(f"Missing input error: {e}")
+        return jsonify({"error": str(e)}), e.status_code
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON decode error: {e}")
+        return jsonify({"error": "JSON decode error"}), 400
+    except Exception as e:
+        logger.error(f"Exception: {e}")
+        return jsonify({"error": "Exception"}), 500
     return jsonify(result)
 
 
 @app.route('/calculate-mvee', methods=['POST'])
 def calculate_mvee():
-    # Parse the JSON data
-    data = request.json
-    points_json = data['points']
+    try:
+        # Parse the JSON data
+        data = request.json
 
-    # Convert the list of dictionaries to a numpy array
-    points = np.array([[point[0], point[1]] for point in points_json])
+        # Check if required inputs are present
+        if 'points' not in data:
+            raise MissingInputError("Missing required input: points")
 
-    # Call the mvee function
-    now = datetime.now()
-    print("calling mvee: ", now)
-    matrix_A, center = mvee(points, tol=1e-3)
-    now2 = datetime.now()
-    print("back from mvee", now2)
-    print("total time: ", now2 - now)
+        points_json = data['points']
 
-    # Calculate the eigenvalues and eigenvectors of matrix A
-    eigenvalues, eigenvectors = eigh(matrix_A)
+        # Check if points is a list
+        if not isinstance(points_json, list):
+            raise InvalidInputError("Invalid input: points must be a list")
 
-    # Calculate the lengths of the semi-major (a) and semi-minor (b) axes
-    a = 1 / np.sqrt(eigenvalues[0])
-    b = 1 / np.sqrt(eigenvalues[1])
+        # Check if each point is a list of two numbers
+        for point in points_json:
+            if not isinstance(point, list) or len(point) != 2:
+                raise InvalidInputError(
+                    "Invalid input: each point must be a list of two numbers")
+            for value in point:
+                if not isinstance(value, (int, float)):
+                    raise InvalidInputError(
+                        "Invalid input: each value in a point must be a number")
 
-    # Calculate the rotation angle using the eigenvectors
-    angle = np.arctan2(eigenvectors[1, 0], eigenvectors[0, 0])
+        # Convert the list of dictionaries to a numpy array
+        points = np.array([[point[0], point[1]] for point in points_json])
 
-    # plot_ellipse_and_points(points, center, a, b, angle)
+        # Call the mvee function
+        now = datetime.now()
+        matrix_A, center = mvee(points, tol=1e-3)
+        now2 = datetime.now()
+        logger.info("total time for mvee calc : " + str(now2 - now))
 
-    # Format the result as a JSON object
-    response = {
-        "center": center.tolist(),
-        "a": a,
-        "b": b,
-        "angle": angle,
-    }
+        # Calculate the eigenvalues and eigenvectors of matrix A
+        eigenvalues, eigenvectors = eigh(matrix_A)
 
-    return jsonify(response)
+        # Calculate the lengths of the semi-major (a) and semi-minor (b) axes
+        a = 1 / np.sqrt(eigenvalues[0])
+        b = 1 / np.sqrt(eigenvalues[1])
+
+        # Calculate the rotation angle using the eigenvectors
+        angle = np.arctan2(eigenvectors[1, 0], eigenvectors[0, 0])
+
+        # plot_ellipse_and_points(points, center, a, b, angle)
+
+        # Format the result as a JSON object
+        response = {
+            "center": center.tolist(),
+            "a": a,
+            "b": b,
+            "angle": angle,
+        }
+
+        return jsonify(response)
+
+    except MissingInputError as e:
+        logger.error(f"MissingInputError: {e}")
+        raise e
+    except InvalidInputError as e:
+        logger.error(f"InvalidInputError: {e}")
+        raise e
+    except CannotFormEllipseError as e:
+        logger.error(f"CannotFormEllipseError: {e}")
+        raise e
+
+    except Exception as e:
+        logger.error(f"Exception: {e}")
+        return jsonify({"error": "Exception"}), 500
 
 
 if __name__ == "__main__":

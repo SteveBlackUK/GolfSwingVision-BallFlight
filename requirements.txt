@@ -25,3 +25,4 @@ tzdata==2023.3
 Werkzeug==2.3.3
 zipp==3.15.0
 gevent
+logtail-python

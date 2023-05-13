@@ -1,9 +1,6 @@
 import numpy as np
 import numpy.linalg as la
-# import matplotlib.pyplot as plt
-# from matplotlib.patches import Ellipse
-# import matplotlib
-# matplotlib.use('Agg')
+from log import logger
 
 
 def mvee(points, tol=0.001):
@@ -32,7 +29,7 @@ def mvee(points, tol=0.001):
     c = u*points
     A = la.inv(points.T*np.diag(u)*points - c.T*c)/d
     # Print the total number of iterations after the loop
-    print(f'Total number of iterations: {iteration_count}')
+    logger.info(f'Total number of iterations: {iteration_count}')
     return np.asarray(A), np.squeeze(np.asarray(c))
 
 
