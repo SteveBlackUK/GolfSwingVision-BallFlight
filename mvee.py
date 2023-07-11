@@ -12,7 +12,7 @@ def mvee(points, tol=0.001):
 
     try: 
         points = np.asmatrix(points)
-        logger.info("Converted points to matrix.")
+        # logger.info("Converted points to matrix.")
 
 
         N, d = points.shape

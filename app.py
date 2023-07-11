@@ -161,6 +161,9 @@ def calculate_mvee():
         points = np.array([[point[0], point[1]] for point in points_json])
 
         # Call the mvee function
+
+        logger.info(f"Starting mvee calculation for {len(points)} points.")
+
         now = datetime.now()
         matrix_A, center = mvee(points, tol=1e-3)
         now2 = datetime.now()
