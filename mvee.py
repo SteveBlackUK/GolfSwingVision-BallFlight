@@ -12,7 +12,9 @@ def mvee(points, tol=0.001):
 
     try: 
         points = np.asmatrix(points)
-        
+        logger.info("Converted points to matrix.")
+
+
         N, d = points.shape
         Q = np.column_stack((points, np.ones(N))).T
         err = tol+1.0
@@ -32,7 +34,7 @@ def mvee(points, tol=0.001):
         c = u*points
         A = la.inv(points.T*np.diag(u)*points - c.T*c)/d
         # Print the total number of iterations after the loop
-        logger.info(f'Total number of iterations: {iteration_count}')
+        logger.info(f'Finished MVEE with total number of iterations: {iteration_count}')
         return np.asarray(A), np.squeeze(np.asarray(c))
     except ValueError as ve:
         logger.error(f"ValueError occurred: {ve}")
