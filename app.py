@@ -165,7 +165,7 @@ def calculate_mvee():
         logger.info(f"Starting mvee calculation for {len(points)} points.")
 
         now = datetime.now()
-        matrix_A, center = mvee(points, tol=1e-3)
+        matrix_A, center = mvee(points, tol=.005)
         now2 = datetime.now()
         logger.info("total time for mvee calc : " + str(now2 - now))
 
